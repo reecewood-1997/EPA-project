@@ -1,0 +1,39 @@
+{
+  "name": "pwc-volunteer-platform",
+  "version": "1.0.0",
+  "description": "PwC One Firm One Day Volunteer Management Platform",
+  "scripts": {
+    "install": "npm install && cd client && npm install && cd ../server && npm install",
+    "start": "cd server && npm start",
+    "dev": "cd server && npm run dev",
+    "test": "cd server && npm test",
+    "lint": "cd client && npm run lint && cd ../server && npm run lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/pwc-volunteer-platform.git"
+  },
+  "keywords": [
+    "volunteer",
+    "management",
+    "platform",
+    "react",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.2.0",
+    "@mui/material": "^7.2.0",
+    "@reduxjs/toolkit": "^2.8.2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "axios": "^1.10.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.6.3"
+  }
+}
