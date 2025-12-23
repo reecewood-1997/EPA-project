@@ -143,3 +143,13 @@ vite.config.ts.timestamp-*
 
 # node-waf configuration
 .lock-wscript
+
+
+
+.claude/
+
+# Temporary/personal files
+nul
+*/nul
+Dissertation*
+*Dissertation*

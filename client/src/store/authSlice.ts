@@ -48,6 +48,7 @@ const authSlice = createSlice({
     },
     updateUser: (state, action) => {
       state.user = action.payload;
+      localStorage.setItem('user', JSON.stringify(action.payload));
     },
   },
 });

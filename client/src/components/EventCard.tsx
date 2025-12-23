@@ -26,15 +26,31 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user) as { id: number } | null;
 
+  
+  const eventAny = event as any; 
+  const eventData = {
+    id: eventAny.EventID || eventAny.id,
+    title: eventAny.Title || eventAny.title,
+    description: eventAny.Description || eventAny.description,
+    startDate: eventAny.StartDateTime || eventAny.startDate,
+    endDate: eventAny.EndDateTime || eventAny.endDate,
+    location: eventAny.Location || eventAny.location,
+    maxParticipants: eventAny.MaxParticipants || eventAny.maxParticipants,
+    currentParticipants: eventAny.CurrentParticipants || eventAny.participants?.length || 0,
+    category: eventAny.CategoryName || eventAny.category,
+    categoryColor: eventAny.CategoryColor,
+    participants: eventAny.participants || []
+  };
+
   const handleJoinEvent = () => {
-    if (user && event) {
-      dispatch(joinEvent({ eventId: String(event.id), userId: String(user.id) }));
+    if (user && eventData) {
+      dispatch(joinEvent({ eventId: String(eventData.id), userId: String(user.id) }));
     }
   };
 
   const handleLeaveEvent = () => {
-    if (user && event) {
-      dispatch(leaveEvent({ eventId: String(event.id), userId: String(user.id) }));
+    if (user && eventData) {
+      dispatch(leaveEvent({ eventId: String(eventData.id), userId: String(user.id) }));
     }
   };
 
@@ -42,30 +58,52 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
     <Card sx={{ mb: 2 }}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ mr: 2 }}>
-            {event.title.charAt(0)}
+          <Avatar 
+            sx={{ 
+              mr: 2, 
+              bgcolor: eventData.categoryColor || 'primary.main' 
+            }}
+          >
+            {eventData.title?.charAt(0) || 'E'}
           </Avatar>
-          <Typography variant="h6" component="div">
-            {event.title}
-          </Typography>
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="h6" component="div">
+              {eventData.title || 'Untitled Event'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              📍 {eventData.location || 'Location TBD'}
+            </Typography>
+          </Box>
         </Box>
         <Typography variant="body2" color="text.secondary" paragraph>
-          {event.description}
+          {eventData.description || 'No description available'}
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
           <Box>
-            <Chip label={`${event.participants?.length || 0}/${event.maxParticipants} participants`} size="small" />
-            <Chip label={event.category} size="small" sx={{ ml: 1 }} />
+            <Chip 
+              label={`${eventData.currentParticipants || 0}/${eventData.maxParticipants || 0} participants`} 
+              size="small" 
+              color={(eventData.currentParticipants || 0) >= (eventData.maxParticipants || 0) ? 'error' : 'default'}
+            />
+            <Chip 
+              label={eventData.category || 'General'} 
+              size="small" 
+              sx={{ 
+                ml: 1,
+                bgcolor: eventData.categoryColor || 'grey.100',
+                color: 'white'
+              }} 
+            />
           </Box>
           <Typography variant="body2" color="text.secondary">
-            {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}
+            {eventData.startDate ? new Date(eventData.startDate).toLocaleDateString() : 'Date TBD'}
           </Typography>
         </Box>
       </CardContent>
       <CardActions>
         <Button
           component={RouterLink}
-          to={`/events/${String(event.id)}`}
+          to={`/events/${String(eventData.id)}`}
           variant="outlined"
           size="small"
         >
@@ -76,13 +114,13 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
             variant="contained"
             size="small"
             onClick={
-              event.participants?.some((p: Participant) => p.userId === user.id)
+              eventData.participants?.some((p: Participant) => p.userId === user.id)
                 ? handleLeaveEvent
                 : handleJoinEvent
             }
-            disabled={event.participants && event.participants.length >= event.maxParticipants}
+            disabled={eventData.currentParticipants >= eventData.maxParticipants}
           >
-            {event.participants?.some((p: Participant) => p.userId === user.id) ? 'Leave Event' : 'Join Event'}
+            {eventData.participants?.some((p: Participant) => p.userId === user.id) ? 'Leave Event' : 'Join Event'}
           </Button>
         )}
       </CardActions>

@@ -12,8 +12,8 @@ export const config = {
         database: process.env.DB_NAME,
     },
     jwt: {
-        secret: process.env.JWT_SECRET || 'your-secret-key',
-        expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+        secret: (process.env.JWT_SECRET || 'your-secret-key') as string,
+        expiresIn: (process.env.JWT_EXPIRES_IN || '24h') as string,
     },
     firebase: {
         projectId: process.env.FIREBASE_PROJECT_ID,

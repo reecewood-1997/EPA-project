@@ -9,7 +9,7 @@ export type EventIdea = {
   description: string;
   category: string;
   estimatedParticipants: number;
-  estimatedDuration: string; // e.g., "2 hours", "full day"
+  estimatedDuration: string; 
   estimatedCost?: string;
   requiredResources?: string[];
   location?: string;
@@ -62,7 +62,6 @@ export type Comment = {
   };
 };
 
-// Mock data storage
 const eventIdeas: EventIdea[] = [
   {
     id: 1,
@@ -95,7 +94,6 @@ let voteIdCounter = 1;
 let commentIdCounter = 1;
 
 export const ideaController = {
-  // GET /api/ideas - Get all event ideas
   async getAllIdeas(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { status, category, limit = '20', offset = '0' } = req.query;
@@ -110,23 +108,21 @@ export const ideaController = {
         filteredIdeas = filteredIdeas.filter(idea => idea.category === category);
       }
 
-      // Sort by votes and creation date
       filteredIdeas.sort((a, b) => {
         const aUpvotes = a.votes.filter(v => v.voteType === 'up').length;
         const bUpvotes = b.votes.filter(v => v.voteType === 'up').length;
         
         if (aUpvotes !== bUpvotes) {
-          return bUpvotes - aUpvotes; // More upvotes first
+          return bUpvotes - aUpvotes;
         }
         
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); // Newer first
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); 
       });
 
       const limitNum = parseInt(limit as string);
       const offsetNum = parseInt(offset as string);
       const paginatedIdeas = filteredIdeas.slice(offsetNum, offsetNum + limitNum);
 
-      // Add vote counts and user vote status
       const ideasWithVoteInfo = paginatedIdeas.map(idea => ({
         ...idea,
         upvotes: idea.votes.filter(v => v.voteType === 'up').length,
@@ -149,7 +145,6 @@ export const ideaController = {
     }
   },
 
-  // GET /api/ideas/:id - Get idea by ID
   async getIdeaById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
@@ -175,7 +170,6 @@ export const ideaController = {
     }
   },
 
-  // POST /api/ideas - Create new event idea
   async createIdea(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
@@ -233,7 +227,6 @@ export const ideaController = {
     }
   },
 
-  // POST /api/ideas/:id/vote - Vote on an idea
   async voteOnIdea(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
@@ -241,7 +234,7 @@ export const ideaController = {
       }
 
       const { id } = req.params;
-      const { voteType } = req.body; // 'up' or 'down'
+      const { voteType } = req.body; 
 
       if (!['up', 'down'].includes(voteType)) {
         throw createError(400, 'Vote type must be "up" or "down"');
@@ -252,14 +245,11 @@ export const ideaController = {
         throw createError(404, 'Event idea not found');
       }
 
-      // Check if user already voted
       const existingVoteIndex = idea.votes.findIndex(v => v.userId === req.user!.id);
 
       if (existingVoteIndex !== -1) {
-        // Update existing vote
         idea.votes[existingVoteIndex].voteType = voteType;
       } else {
-        // Create new vote
         const newVote: Vote = {
           id: voteIdCounter++,
           userId: req.user.id,
@@ -291,7 +281,6 @@ export const ideaController = {
     }
   },
 
-  // DELETE /api/ideas/:id/vote - Remove vote
   async removeVote(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
@@ -322,7 +311,6 @@ export const ideaController = {
     }
   },
 
-  // POST /api/ideas/:id/comments - Add comment
   async addComment(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       if (!req.user) {
@@ -367,7 +355,6 @@ export const ideaController = {
     }
   },
 
-  // PUT /api/ideas/:id/status - Update idea status (admin/manager only)
   async updateIdeaStatus(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       if (!req.user || !['admin', 'manager'].includes(req.user.role)) {

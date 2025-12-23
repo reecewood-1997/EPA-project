@@ -21,7 +21,6 @@ export const errorHandler = (
 ) => {
   logger.error('Error:', error);
 
-  // If it's our custom AppError
   if ('isOperational' in error && error.isOperational) {
     return res.status(error.statusCode).json({
       success: false,
@@ -29,10 +28,8 @@ export const errorHandler = (
     });
   }
 
-  // If it's a regular Error object
   const err = error as Error;
 
-  // If it's a validation error
   if (err.name === 'ValidationError') {
     return res.status(400).json({
       success: false,
@@ -41,7 +38,6 @@ export const errorHandler = (
     });
   }
 
-  // If it's a JWT error
   if (err.name === 'JsonWebTokenError') {
     return res.status(401).json({
       success: false,
@@ -49,7 +45,6 @@ export const errorHandler = (
     });
   }
 
-  // Generic server error
   res.status(500).json({
     success: false,
     message: 'Internal server error',

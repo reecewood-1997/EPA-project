@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Paper,
@@ -14,17 +14,29 @@ import {
   OutlinedInput,
   Grid,
   Divider,
+  Alert,
 } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { Event } from '../types/event';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+
+interface Category {
+  CategoryID: number;
+  CategoryName: string;
+  Description: string;
+  Color: string;
+}
 
 const CreateEvent: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAppSelector((state) => state.auth.user);
   const [tags, setTags] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [fromIdea, setFromIdea] = useState(false);
+  const [tagsMenuOpen, setTagsMenuOpen] = useState(false);
   const [eventData, setEventData] = useState<Partial<Event>>({
     title: '',
     description: '',
@@ -51,18 +63,19 @@ const CreateEvent: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const selectedCategory = categories.find(cat => cat.CategoryName === eventData.category);
       const eventToCreate = {
-        ...eventData,
-        id: Date.now(), // Generate a temporary ID
-        tags,
-        createdBy: user,
-        participants: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        title: eventData.title,
+        description: eventData.description,
+        location: eventData.location,
+        startDateTime: eventData.startDate,
+        endDateTime: eventData.endDate,
+        maxParticipants: eventData.maxParticipants,
+        categoryID: selectedCategory?.CategoryID,
+        requiredSkills: JSON.stringify(tags)
       };
       
       try {
-        // Get user token for authentication
         const token = localStorage.getItem('token');
         const headers = token ? {
           'Content-Type': 'application/json',
@@ -71,28 +84,25 @@ const CreateEvent: React.FC = () => {
           'Content-Type': 'application/json'
         };
 
-        // Try to create via backend first
-        const response = await axios.post('http://localhost:5000/api/events', eventToCreate, {
+        const response = await axios.post('http://localhost:5001/api/events', eventToCreate, {
           headers
         });
 
         if (response.data.success) {
           alert('Event created successfully!');
+          window.location.href = '/events';
         }
       } catch (backendError: any) {
-        // Backend not available, store locally for now
-        console.log('Backend not available, event created locally', backendError.message);
+        console.error('Backend error:', backendError);
         
-        // Store in localStorage for now (will be replaced by backend later)
-        const existingEvents = JSON.parse(localStorage.getItem('mockEvents') || '[]');
-        existingEvents.push(eventToCreate);
-        localStorage.setItem('mockEvents', JSON.stringify(existingEvents));
-        
-        // Show success message
-        alert('Event created successfully! (Note: This is stored locally until backend is connected)');
+        if (backendError.response) {
+          alert(`Error creating event: ${backendError.response.data.message || 'Unknown error'}`);
+        } else if (backendError.request) {
+          alert('Cannot connect to server. Please ensure the server is running.');
+        } else {
+          alert('Failed to create event. Please try again.');
+        }
       }
-      
-      navigate('/events');
     } catch (error) {
       console.error('Error creating event:', error);
       alert('Failed to create event. Please try again.');
@@ -103,18 +113,47 @@ const CreateEvent: React.FC = () => {
     setTags(event.target.value as string[]);
   };
 
-  const categories = [
-    'environment',
-    'education', 
-    'health',
-    'community',
-    'elderly-care',
-    'youth-support',
-    'food-security',
-    'homelessness',
-    'disability-support',
-    'mental-health'
-  ];
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axios.get('http://localhost:5001/api/events/categories');
+        if (response.data.success) {
+          setCategories(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.fromIdea && categories.length > 0) {
+      setFromIdea(true);
+      const categoryName = categories.find(cat => cat.CategoryID === state.categoryId)?.CategoryName || '';
+
+      setEventData({
+        title: state.title || '',
+        description: state.description || '',
+        location: state.location || '',
+        category: categoryName,
+        maxParticipants: state.maxParticipants || 10,
+        requirements: state.requiredSkills || '',
+        startDate: '',
+        endDate: '',
+        objectives: '',
+        contactEmail: user?.email || '',
+        contactPhone: '',
+      });
+
+      if (state.requiredSkills && typeof state.requiredSkills === 'string') {
+        const skillTags = state.requiredSkills.split(',').map((s: string) => s.trim().toLowerCase());
+        setTags(skillTags.filter((tag: string) => availableTags.includes(tag)));
+      }
+    }
+  }, [location.state, categories, user]);
 
   const availableTags = [
     'outdoor',
@@ -137,6 +176,14 @@ const CreateEvent: React.FC = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           Create New Event
         </Typography>
+
+        {fromIdea && (
+          <Alert severity="info" sx={{ mb: 3 }}>
+            This form has been pre-filled with details from an approved community idea.
+            Please add event dates and adjust any details as needed.
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             {/* Basic Information */}
@@ -166,7 +213,8 @@ const CreateEvent: React.FC = () => {
                 value={eventData.description}
                 onChange={handleChange('description')}
                 required
-                helperText="Detailed description of the volunteer activity and its impact"
+                helperText="Detailed description of the volunteer activity and its impact (minimum 10 characters)"
+                error={eventData.description ? eventData.description.length > 0 && eventData.description.length < 10 : false}
               />
             </Grid>
 
@@ -179,8 +227,8 @@ const CreateEvent: React.FC = () => {
                   onChange={(e) => setEventData(prev => ({...prev, category: e.target.value}))}
                 >
                   {categories.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')}
+                    <MenuItem key={cat.CategoryID} value={cat.CategoryName}>
+                      {cat.CategoryName}
                     </MenuItem>
                   ))}
                 </Select>
@@ -193,6 +241,9 @@ const CreateEvent: React.FC = () => {
                 <Select
                   multiple
                   value={tags}
+                  open={tagsMenuOpen}
+                  onOpen={() => setTagsMenuOpen(true)}
+                  onClose={() => setTagsMenuOpen(false)}
                   onChange={handleTagChange}
                   input={<OutlinedInput label="Tags" />}
                   renderValue={(selected) => (
@@ -208,6 +259,16 @@ const CreateEvent: React.FC = () => {
                       {tag.charAt(0).toUpperCase() + tag.slice(1)}
                     </MenuItem>
                   ))}
+                  <Box sx={{ p: 1, pt: 2 }}>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      fullWidth
+                      onClick={() => setTagsMenuOpen(false)}
+                    >
+                      Done
+                    </Button>
+                  </Box>
                 </Select>
               </FormControl>
             </Grid>
@@ -241,6 +302,8 @@ const CreateEvent: React.FC = () => {
                 onChange={handleChange('endDate')}
                 required
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ min: eventData.startDate }}
+                helperText="Must be after start date & time"
               />
             </Grid>
 

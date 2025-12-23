@@ -3,7 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { createError } from '../middleware/errorHandler';
 
-// Mock event database (replace with actual database later)
+// In-memory event storage
 export type Event = {
   id: number;
   title: string;
@@ -48,7 +48,7 @@ export type Participant = {
   };
 };
 
-// In-memory event storage (replace with database)
+// In-memory event data
 const events: Event[] = [
   {
     id: 1,
@@ -114,7 +114,6 @@ export const eventController = {
 
       let filteredEvents = events.filter(event => event.status === status);
 
-      // Apply filters
       if (category) {
         filteredEvents = filteredEvents.filter(event => event.category === category);
       }
@@ -124,7 +123,6 @@ export const eventController = {
         );
       }
 
-      // Apply pagination
       const limitNum = parseInt(limit as string);
       const offsetNum = parseInt(offset as string);
       const paginatedEvents = filteredEvents.slice(offsetNum, offsetNum + limitNum);
@@ -147,16 +145,16 @@ export const eventController = {
   async getEventCategories(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const categories = [
-        'environment',
-        'education',
-        'health',
-        'community',
-        'elderly-care',
-        'youth-support',
-        'food-security',
-        'homelessness',
-        'disability-support',
-        'mental-health'
+        { CategoryID: 1, CategoryName: 'environment', Description: 'Environmental activities', Color: '#4caf50' },
+        { CategoryID: 2, CategoryName: 'education', Description: 'Educational programs', Color: '#2196f3' },
+        { CategoryID: 3, CategoryName: 'health', Description: 'Health and wellness', Color: '#f44336' },
+        { CategoryID: 4, CategoryName: 'community', Description: 'Community building', Color: '#ff9800' },
+        { CategoryID: 5, CategoryName: 'elderly-care', Description: 'Elderly care', Color: '#9c27b0' },
+        { CategoryID: 6, CategoryName: 'youth-support', Description: 'Youth support', Color: '#00bcd4' },
+        { CategoryID: 7, CategoryName: 'food-security', Description: 'Food security', Color: '#8bc34a' },
+        { CategoryID: 8, CategoryName: 'homelessness', Description: 'Homelessness support', Color: '#795548' },
+        { CategoryID: 9, CategoryName: 'disability-support', Description: 'Disability support', Color: '#607d8b' },
+        { CategoryID: 10, CategoryName: 'mental-health', Description: 'Mental health', Color: '#e91e63' }
       ];
 
       res.json({
@@ -251,7 +249,7 @@ export const eventController = {
         endDate: eventData.endDate,
         location: eventData.location,
         category: eventData.category,
-        maxParticipants: eventData.maxParticipants,
+        maxParticipants: parseInt(eventData.maxParticipants),
         requirements: eventData.requirements,
         objectives: eventData.objectives,
         contactEmail: eventData.contactEmail,
@@ -300,12 +298,10 @@ export const eventController = {
 
       const event = events[eventIndex];
 
-      // Check if user is the creator or has admin/manager role
       if (event.createdBy.id !== req.user.id && !['admin', 'manager'].includes(req.user.role)) {
         throw createError(403, 'You can only update events you created');
       }
 
-      // Update event fields
       const updatedEvent: Event = {
         ...event,
         ...req.body,
@@ -342,7 +338,6 @@ export const eventController = {
 
       const event = events[eventIndex];
 
-      // Check if user is the creator or has admin role
       if (event.createdBy.id !== req.user.id && req.user.role !== 'admin') {
         throw createError(403, 'You can only delete events you created or you must be an admin');
       }
@@ -374,12 +369,10 @@ export const eventController = {
         throw createError(404, 'Event not found');
       }
 
-      // Check if event is full
       if (event.participants && event.participants.length >= event.maxParticipants) {
         throw createError(400, 'Event is full');
       }
 
-      // Check if user is already a participant
       const existingParticipant = event.participants?.find(p => p.userId === req.user!.id);
       if (existingParticipant) {
         throw createError(400, 'You are already registered for this event');
@@ -431,7 +424,6 @@ export const eventController = {
         throw createError(404, 'Event not found');
       }
 
-      // Users can only remove themselves, unless they're admin
       const targetUserId = parseInt(userId);
       if (req.user.id !== targetUserId && req.user.role !== 'admin') {
         throw createError(403, 'You can only remove yourself from events');

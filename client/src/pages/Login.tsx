@@ -6,6 +6,11 @@ import {
   TextField,
   Button,
   Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
@@ -14,14 +19,42 @@ import { login } from '../store/authSlice';
 const Login: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [credentials, setCredentials] = useState({
     email: '',
     password: '',
+    firstName: '',
+    lastName: '',
+    department: '',
+    location: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (field: 'email' | 'password') => (
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  
+  const departments = [
+    'HR',
+    'IT', 
+    'Accounting',
+    'Audit',
+    'Finance',
+    'Deals',
+    'Risk',
+    'Tax'
+  ];
+
+  const passwordRequirements = {
+    minLength: credentials.password.length >= 8,
+    hasNumber: /\d/.test(credentials.password),
+    hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(credentials.password),
+    hasUpperCase: /[A-Z]/.test(credentials.password),
+    hasLowerCase: /[a-z]/.test(credentials.password),
+  };
+
+  const isPasswordValid = Object.values(passwordRequirements).every(req => req);
+
+  const handleChange = (field: keyof typeof credentials) => (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setCredentials((prev) => ({
@@ -34,9 +67,16 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (isRegisterMode && !isPasswordValid) {
+      setError('Please ensure your password meets all requirements.');
+      setLoading(false);
+      return;
+    }
     
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const endpoint = isRegisterMode ? 'register' : 'login';
+      const response = await fetch(`http://localhost:5001/api/auth/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,25 +100,18 @@ const Login: React.FC = () => {
         throw new Error('Invalid response format');
       }
     } catch (error: any) {
-      // Fallback to demo login if backend is not available
+      console.error('Auth error:', error);
+      
+      // Handle different types of errors with user-friendly messages
       if (error.message?.includes('fetch') || error.message?.includes('Failed to fetch')) {
-        console.log('Backend not available, using demo login');
-        const mockUser = {
-          id: 1,
-          email: credentials.email,
-          firstName: 'John',
-          lastName: 'Doe',
-          role: 'employee',
-          department: 'Technology',
-          location: 'London'
-        };
-        const mockToken = 'demo-jwt-token';
-        dispatch(login({ user: mockUser, token: mockToken }));
-        navigate('/events');
+        setError('Unable to connect to server. Please try again later.');
+      } else if (error.message?.includes('JSON') || error.message?.includes('Unexpected token')) {
+        setError('Server error. Please try again later.');
+      } else if (error.message?.includes('401') || error.message?.includes('Invalid')) {
+        setError(isRegisterMode ? 'Registration failed. Please check your details.' : 'Invalid email or password.');
       } else {
-        setError(error.message || 'Invalid email or password. Please try again.');
+        setError(isRegisterMode ? 'Registration failed. Please try again.' : 'Login failed. Please try again.');
       }
-      console.error('Login error:', error);
     } finally {
       setLoading(false);
     }
@@ -88,7 +121,7 @@ const Login: React.FC = () => {
     <Container maxWidth="sm">
       <Paper sx={{ p: 4, mt: 8 }}>
         <Typography variant="h4" component="h1" gutterBottom align="center">
-          Login
+          {isRegisterMode ? 'Register' : 'Login'}
         </Typography>
         <form onSubmit={handleSubmit}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -96,6 +129,44 @@ const Login: React.FC = () => {
               <Typography color="error" variant="body2" align="center">
                 {error}
               </Typography>
+            )}
+            {isRegisterMode && (
+              <>
+                <TextField
+                  fullWidth
+                  label="First Name"
+                  value={credentials.firstName}
+                  onChange={handleChange('firstName')}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  label="Last Name"
+                  value={credentials.lastName}
+                  onChange={handleChange('lastName')}
+                  required
+                />
+                <FormControl fullWidth>
+                  <InputLabel>Department</InputLabel>
+                  <Select
+                    value={credentials.department}
+                    label="Department"
+                    onChange={(e) => setCredentials(prev => ({ ...prev, department: e.target.value }))}
+                  >
+                    {departments.map((dept) => (
+                      <MenuItem key={dept} value={dept}>
+                        {dept}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth
+                  label="Location"
+                  value={credentials.location}
+                  onChange={handleChange('location')}
+                />
+              </>
             )}
             <TextField
               fullWidth
@@ -112,9 +183,37 @@ const Login: React.FC = () => {
               type="password"
               value={credentials.password}
               onChange={handleChange('password')}
+              onFocus={() => setPasswordTouched(true)}
               required
-              error={!!error}
+              error={!!error || (isRegisterMode && passwordTouched && !isPasswordValid)}
+              helperText={
+                isRegisterMode && passwordTouched && !isPasswordValid
+                  ? "Password must meet all requirements below"
+                  : ""
+              }
             />
+            {isRegisterMode && passwordTouched && (
+              <Box sx={{ mt: 1, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Password Requirements:
+                </Typography>
+                <Typography variant="body2" color={passwordRequirements.minLength ? 'success.main' : 'error.main'}>
+                  {passwordRequirements.minLength ? '✓' : '✗'} At least 8 characters
+                </Typography>
+                <Typography variant="body2" color={passwordRequirements.hasUpperCase ? 'success.main' : 'error.main'}>
+                  {passwordRequirements.hasUpperCase ? '✓' : '✗'} One uppercase letter
+                </Typography>
+                <Typography variant="body2" color={passwordRequirements.hasLowerCase ? 'success.main' : 'error.main'}>
+                  {passwordRequirements.hasLowerCase ? '✓' : '✗'} One lowercase letter
+                </Typography>
+                <Typography variant="body2" color={passwordRequirements.hasNumber ? 'success.main' : 'error.main'}>
+                  {passwordRequirements.hasNumber ? '✓' : '✗'} One number
+                </Typography>
+                <Typography variant="body2" color={passwordRequirements.hasSpecialChar ? 'success.main' : 'error.main'}>
+                  {passwordRequirements.hasSpecialChar ? '✓' : '✗'} One special character (!@#$%^&*)
+                </Typography>
+              </Box>
+            )}
             <Button
               type="submit"
               variant="contained"
@@ -123,7 +222,18 @@ const Login: React.FC = () => {
               disabled={loading}
               size="large"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading 
+                ? (isRegisterMode ? 'Creating Account...' : 'Signing in...') 
+                : (isRegisterMode ? 'Create Account' : 'Sign In')
+              }
+            </Button>
+            <Button
+              variant="text"
+              color="secondary"
+              onClick={() => setIsRegisterMode(!isRegisterMode)}
+              sx={{ mt: 1 }}
+            >
+              {isRegisterMode ? 'Already have an account? Sign In' : 'Need an account? Register'}
             </Button>
             <Typography variant="body2" color="text.secondary" align="center">
               Demo: Use any email and password to sign in

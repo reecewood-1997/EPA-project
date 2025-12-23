@@ -1,5 +1,8 @@
-// Database models - commented out until SQL Server is set up
-
+// Type definition for User model
 export type UserModel = {
-  // Placeholder for database model
+  id?: number;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: 'employee' | 'manager' | 'admin';
 };

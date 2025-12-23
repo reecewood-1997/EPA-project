@@ -1,6 +1,12 @@
-// Database models - commented out until SQL Server is set up
-// Will be implemented when database connection is established
-
+// Type definition for Event model
 export type EventModel = {
-  // Placeholder for database model
+  id?: number;
+  title?: string;
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+  location?: string;
+  category?: string;
+  maxParticipants?: number;
 };
+ 

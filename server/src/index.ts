@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import { config } from './config';
 import { logger } from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
@@ -9,8 +8,6 @@ import { authRoutes } from './routes/auth.routes';
 import { eventRoutes } from './routes/event.routes';
 import { ideaRoutes } from './routes/idea.routes';
 import { userRoutes } from './routes/user.routes';
-
-dotenv.config();
 
 const app = express();
 

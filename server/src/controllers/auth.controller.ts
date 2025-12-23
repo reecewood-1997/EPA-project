@@ -5,7 +5,6 @@ import { config } from '../config';
 import { logger } from '../utils/logger';
 import { createError } from '../middleware/errorHandler';
 
-// Mock user database (replace with actual database later)
 type User = {
   id: number;
   email: string;
@@ -22,12 +21,11 @@ type User = {
   updatedAt: Date;
 };
 
-// In-memory user storage (replace with database)
 const users: User[] = [
   {
     id: 1,
     email: 'admin@pwc.com',
-    password: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj3JQ.6EL9k6', // password: 'admin123'
+    password: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj3JQ.6EL9k6', 
     firstName: 'Admin',
     lastName: 'User',
     role: 'admin',
@@ -39,7 +37,7 @@ const users: User[] = [
   {
     id: 2,
     email: 'manager@pwc.com',
-    password: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj3JQ.6EL9k6', // password: 'manager123'
+    password: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj3JQ.6EL9k6',
     firstName: 'Manager',
     lastName: 'User',
     role: 'manager',
@@ -60,11 +58,11 @@ const generateToken = (user: Omit<User, 'password'>): string => {
     firstName: user.firstName,
     lastName: user.lastName,
   };
-  
+
   const secret = config.jwt.secret || 'fallback-secret';
   const expiresIn = config.jwt.expiresIn || '24h';
-  
-  return jwt.sign(payload, secret, { expiresIn });
+
+  return jwt.sign(payload, secret, { expiresIn } as any);
 };
 
 export const authController = {
@@ -72,16 +70,13 @@ export const authController = {
     try {
       const { email, password, firstName, lastName, role, department, location } = req.body;
 
-      // Check if user already exists
       const existingUser = users.find(user => user.email === email);
       if (existingUser) {
         throw createError(400, 'User with this email already exists');
       }
 
-      // Hash password
       const hashedPassword = await bcrypt.hash(password, 12);
 
-      // Create new user
       const newUser: User = {
         id: userIdCounter++,
         email,
@@ -97,10 +92,8 @@ export const authController = {
 
       users.push(newUser);
 
-      // Generate token
       const token = generateToken(newUser);
 
-      // Remove password from response
       const { password: _, ...userResponse } = newUser;
 
       logger.info(`New user registered: ${email}`);
@@ -122,22 +115,18 @@ export const authController = {
     try {
       const { email, password } = req.body;
 
-      // Find user
       const user = users.find(u => u.email === email);
       if (!user) {
         throw createError(401, 'Invalid email or password');
       }
 
-      // Check password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
         throw createError(401, 'Invalid email or password');
       }
 
-      // Generate token
       const token = generateToken(user);
 
-      // Remove password from response
       const { password: _, ...userResponse } = user;
 
       logger.info(`User logged in: ${email}`);
@@ -187,14 +176,12 @@ export const authController = {
 
       const user = users.find(u => u.email === email);
       if (!user) {
-        // Don't reveal if email exists or not
         return res.json({
           success: true,
           message: 'If an account with that email exists, a password reset link has been sent.',
         });
       }
 
-      // In a real app, send email with reset link
       logger.info(`Password reset requested for: ${email}`);
 
       res.json({
@@ -210,8 +197,7 @@ export const authController = {
     try {
       const { token, password } = req.body;
 
-      // In a real app, verify the reset token
-      // For now, just return success
+ 
       const hashedPassword = await bcrypt.hash(password, 12);
 
       res.json({
@@ -223,7 +209,6 @@ export const authController = {
     }
   },
 
-  // Utility function to get all users (admin only)
   async getAllUsers(req: Request, res: Response, next: NextFunction) {
     try {
       const usersResponse = users.map(({ password, ...user }) => user);

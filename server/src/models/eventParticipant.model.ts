@@ -1,5 +1,7 @@
-// Database models - commented out until SQL Server is set up
-
+// Type definition for EventParticipant model
 export type EventParticipantModel = {
-  // Placeholder for database model
+  id?: number;
+  userId?: number;
+  eventId?: number;
+  status?: 'pending' | 'confirmed' | 'attended' | 'cancelled';
 };

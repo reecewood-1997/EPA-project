@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Event } from '../types/event';
 
-// Mock data for testing without backend
+
 const mockEvents: Event[] = [
   {
     id: 1,
@@ -109,33 +109,45 @@ export const useEvents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
+  const fetchEvents = async () => {
+    setLoading(true);
+    try {
       try {
-        // Try to fetch from backend first, fall back to mock data
-        try {
-          const response = await axios.get('http://localhost:5000/api/events');
-          if (response.data.success && response.data.data) {
-            setEvents(response.data.data.events || response.data.data);
-          } else {
-            throw new Error('Invalid response format');
-          }
-        } catch (backendError) {
-          // Backend not available, use mock data + locally created events
-          console.log('Backend not available, using mock data');
-          const localEvents = JSON.parse(localStorage.getItem('mockEvents') || '[]');
-          const allEvents = [...mockEvents, ...localEvents];
-          setEvents(allEvents);
-        }
-      } catch (err) {
-        setError('Failed to fetch events');
-      } finally {
-        setLoading(false);
-      }
-    };
+        console.log('🚀 ATTEMPTING API CALL TO /api/events');
+        const token = localStorage.getItem('token');
+        console.log('🔑 Token found:', !!token);
+        const headers = token ? {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } : { 'Content-Type': 'application/json' };
 
+        const response = await axios.get('http://localhost:5001/api/events', { headers });
+        console.log('✅ API RESPONSE SUCCESS:', response.data);
+        console.log('🔍 FIRST EVENT DETAILS:', response.data.data[0]);
+        if (response.data.success && response.data.data) {
+          setEvents(response.data.data.events || response.data.data);
+          console.log('📊 SET EVENTS FROM API');
+        } else {
+          throw new Error('Invalid response format');
+        }
+      } catch (backendError) {
+        console.log('❌ BACKEND ERROR - USING MOCK DATA');
+        console.error('🔥 Backend error details:', backendError);
+        const localEvents = JSON.parse(localStorage.getItem('mockEvents') || '[]');
+        const allEvents = [...mockEvents, ...localEvents];
+        setEvents(allEvents);
+        console.log('📊 SET EVENTS FROM MOCK DATA');
+      }
+    } catch (err) {
+      setError('Failed to fetch events');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchEvents();
   }, []);
 
-  return { events, loading, error };
+  return { events, loading, error, refetch: fetchEvents };
 };
