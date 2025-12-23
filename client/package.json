@@ -14,7 +14,7 @@
     "react-big-calendar": "^1.19.4",
     "react-dom": "^18.2.0",
     "react-redux": "^9.1.0",
-    "react-router-dom": "^6.21.3",
+    "react-router-dom": "^7.11.0",
     "react-scripts": "5.0.1",
     "web-vitals": "^5.1.0"
   },
