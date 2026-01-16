@@ -4,8 +4,10 @@
   "description": "Server for PwC Volunteer Management Platform",
   "main": "src/index.ts",
   "scripts": {
-    "start": "node -r ts-node/register src/index.ts",
-    "dev": "nodemon --exec \"ts-node --transpileOnly\" src/index.ts",
+    "start": "node src/real-server.js",
+    "start:memory": "node -r ts-node/register src/index.ts",
+    "dev": "nodemon src/real-server.js",
+    "dev:memory": "nodemon --exec \"ts-node --transpileOnly\" src/index.ts",
     "test": "jest",
     "lint": "eslint . --ext .js,.ts"
   },
